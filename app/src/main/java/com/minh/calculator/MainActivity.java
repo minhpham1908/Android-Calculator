@@ -18,9 +18,9 @@ public class MainActivity extends AppCompatActivity {
 
     // empty nghia la moi bien co trang thai nhu sau.
     public boolean empty = true;
-    String fullText = ""; //chua bieu thuc
+    String fullText = "0"; //chua bieu thuc
     String prevCalText = ""; //chua bieu thuc ket thuc la 1 phep toan
-    String textText = ""; //chi chua so
+    String textText = "0"; //chi chua so
     public boolean isPreviousInputOperator = false;
 
 
@@ -115,6 +115,19 @@ public class MainActivity extends AppCompatActivity {
         }.parse();
     }
 
+    public String negate(String text) {
+        double number = eval(text);
+        number = -number;
+        String reverse = "";
+        if (text.matches("-?\\d+(\\.0+)?")) {
+            int i = (int) number;
+            reverse = String.valueOf(i);
+        } else {
+            reverse = String.valueOf(number);
+        }
+        return reverse;
+    }
+
     public static String calculate(String text) {
         String answer = String.valueOf(eval(text));
         if (answer.matches("-?\\d+\\.0+")) {
@@ -136,20 +149,18 @@ public class MainActivity extends AppCompatActivity {
             text.setText(textText);
             empty = false;
             isPreviousInputOperator = false;
-            testState();
 
         } else if (input.matches("[+\\-÷×]")) {
             Log.v("input", "op");
             if (empty) {
-                fullText = "0".concat(input);
                 textText = "0";
-                prevCalText = fullText;
             } else if (!empty) {
                 String lastChar = fullText.substring(fullText.length() - 1);
                 if (lastChar.matches("\\d")) {
                     textText = calculate(fullText);
                 } else if (lastChar.matches("[+\\-÷×]")) {
                     fullText = fullText.substring(0, fullText.length() - 1);
+
                 }
             }
             fullText = fullText.concat(input);
@@ -158,25 +169,35 @@ public class MainActivity extends AppCompatActivity {
             prevCal.setText(prevCalText);
             isPreviousInputOperator = true;
             empty = false;
-            testState();
 
         } else if (input.matches("C")) {
             //xoa fulltext, xoa preCal, xoa text
             Log.v("input", "C");
-            fullText = "";
+            fullText = "0";
             prevCalText = "";
-            textText = "";
+            textText = "0";
             prevCal.setText(prevCalText);
-            text.setText("0");
+            text.setText(textText);
             isPreviousInputOperator = false;
             empty = true;
 
         } else if (input.matches("\\.")) {
-            if (text.getText().toString().indexOf('.') < 0) {
-                fullText = fullText.concat(input);
-                text.setText(fullText);
-            }
+            Log.v("input", ".");
+            if (empty) {
+                fullText = fullText.concat(".");
+                textText = fullText;
 
+            } else if (isPreviousInputOperator == true) {
+                fullText = fullText.concat("0.");
+                textText = "0.";
+                isPreviousInputOperator = false;
+            }
+            if (fullText.indexOf('.') < 0) {
+                fullText = fullText.concat(input);
+                textText = fullText;
+            }
+            text.setText(textText);
+            empty = false;
         } else if (input.matches("CE")) {
             if (!empty) {
                 fullText = fullText.substring(0, fullText.length() - textText.length());
@@ -188,17 +209,22 @@ public class MainActivity extends AppCompatActivity {
             Log.v("input", "del");
             //xoa chu so cuoi cung cua full text den phep tinh
             // xoa chu so cuoi cung cua text, neu con 1 so -> ve 0
-            if (textText.length() >= 1) {
-                if (fullText.substring(fullText.length() - 1).matches("\\d")) {
-                    fullText = fullText.substring(0, fullText.length() - 1);
-                }
-                if (textText.length() == 1) {
-                    textText = "0";
-                } else
+            if (isPreviousInputOperator == false) {
+                if (textText.length() > 1) {
                     textText = textText.substring(0, textText.length() - 1);
+                    fullText = fullText.substring(0, fullText.length() - 1);
+
+                } else if (textText.length() == 1) {
+                    textText = "0";
+                    fullText = prevCalText;
+                }
+
+
+            } else if (isPreviousInputOperator == true) {
+                //do nothing
             }
+
             text.setText(textText);
-            testState();
         } else if (input.matches("=")) {
             Log.v("input", "=");
             prevCalText = "";
@@ -210,8 +236,22 @@ public class MainActivity extends AppCompatActivity {
             textText = fullText;
             prevCal.setText(prevCalText);
             text.setText(textText);
-            testState();
+        } else if (input.matches("±")) {
+            if (!empty) {
+                if (isPreviousInputOperator == false) {
+                    fullText = fullText.substring(0, fullText.length() - textText.length());
+                    textText = negate(textText);
+                    fullText = fullText.concat(textText);
+                } else if (isPreviousInputOperator == true) {
+                    textText = negate(textText);
+                }
+            }
+            text.setText(textText);
+            prevCal.setText(prevCalText);
         }
+
+        testState();
+
     }
 
 
@@ -395,16 +435,7 @@ public class MainActivity extends AppCompatActivity {
                 button.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if (empty) {
-                            //donothing
-                        } else {
-                            if (text.getText().charAt(0) != '-') {
-                                text.setText("-".concat(text.getText().toString()));
-                            } else {
-                                text.setText(text.getText().toString().substring(1));
-                            }
-                        }
-                        empty = false;
+                        onClickButton(button.getText().toString(), text, prevCal);
                     }
                 });
                 break;
